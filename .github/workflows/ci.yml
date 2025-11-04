@@ -9,12 +9,12 @@ on:
 env:
   DOCKER_BUILD_IMAGE: registry.fedoraproject.org/fedora-toolbox:43
   DOCKER_BUILD_REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/freeipa-builder
-  IPA_TESTS_ENV_WORKING_DIR: /tmp/ipa_env
-  IPA_TESTS_DOMAIN: ipa.test
-  IPA_TESTS_REPO_PATH: /work
-  IPA_TESTS_SCRIPTS: ipatests/azure/scripts
-  IPA_PLATFORM: fedora
+  TOX_COMMAND: tox
+#   IPA_TESTS_ENV_WORKING_DIR: /tmp/ipa_env
+#   IPA_TESTS_DOMAIN: ipa.test
+#   IPA_TESTS_REPO_PATH: /work
+#   IPA_TESTS_SCRIPTS: ipatests/azure/scripts
+#   IPA_PLATFORM: fedora
 
 jobs:
   build-image:
@@ -114,6 +114,8 @@ jobs:
       - name: Lint sources
         run: |
           set -e
+          git config --global --add safe.directory /build
+
           echo "Running autoconf generator"
           ./autogen.sh  --enable-pylint --enable-rpmlint
 
@@ -123,5 +125,45 @@ jobs:
       - name: Quick code style check
         run: |
           set -e
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*'
           git update-ref refs/heads/${{ github.event.pull_request.head.ref }} origin/${{ github.event.pull_request.head.ref }}
           make V=0 "GIT_BRANCH=${{ github.event.pull_request.head.ref }}" fastcodestyle
+
+  tox:
+    name: Tox
+    runs-on: ubuntu-latest
+    needs: build-image
+    container:
+      image: ${{ needs.build-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: >-
+        -v ./:/build
+    defaults:
+      run:
+        working-directory: /build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Run Tox
+        run: |
+          set -e
+          git config --global --add safe.directory /build
+
+          echo "Running autoconf generator"
+          ./autogen.sh  --enable-pylint --enable-rpmlint
+
+          echo "Running tox"
+          export LANG=en_US.utf8
+          export LC_CTYPE=en_US.utf8
+          locale
+          $TOX_COMMAND -e py3,pypi,pylint3 -vv
+
+      - name: Upload Tox results
+        uses: actions/upload-artifact@v4
+        with:
+          name: tox-test-results
+          path: .tox/**/junit-*.xml
