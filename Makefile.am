@@ -25,8 +25,6 @@ PYTHON_SCRIPT_SUBDIRS = \
 
 PRCI_DEFINITIONS_DIR = $(top_srcdir)/ipatests/prci_definitions
 
-AZURE_PYTHON_SCRIPT_SUBDIR = $(top_builddir)/ipatests/azure
-
 IPA_PLACEHOLDERS = freeipa ipa ipaserver ipatests
 SUBDIRS = \
         asn1 \
@@ -399,7 +397,7 @@ pylint: $(GENERATED_PYTHON_FILES) ipasetup.py python_scripts
 		-name '*~' -o \
 		-name '*.py' -print -o \
 		-type f -exec grep -qsm1 '^#!.*\bpython' '{}' \; -print`; \
-	FILES=`echo -e "$${FILES}\n$(AZURE_PYTHON_SCRIPT_SUBDIR)\n$(PRCI_DEFINITIONS_DIR)"`; \
+	FILES=`echo -e "$${FILES}\n$(PRCI_DEFINITIONS_DIR)"`; \
 	echo -e "Pylint on $(PYTHON) is running over files:\n$${FILES}\nPlease wait ...\n"; \
 	$(PYTHON) -m pylint --version; \
 	PYTHONPATH=$(top_srcdir) $(PYTHON) -m pylint \
