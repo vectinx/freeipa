@@ -67,9 +67,13 @@ jobs:
         working-directory: /build
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Build freeipa packages
         run: |
+            git config --global --add safe.directory /build
+
             echo "Running autoconf generator"
             ./autogen.sh  --enable-pylint --enable-rpmlint
 
